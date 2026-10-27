@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Layout preview harness (development only — delete before shipping)</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #3a3f3a;
+        overflow: hidden;
+      }
+      iframe {
+        display: block;
+        border: 0;
+        background: #f6f3ec;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe id="frame" title="ROAM preview"></iframe>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const width = Number(params.get("w") || 375);
+      const y = Number(params.get("y") || 0);
+      const scale = Number(params.get("s") || 1);
+      const hash = params.get("hash") || "";
+      const frame = document.getElementById("frame");
+      const report = document.createElement("div");
+      report.id = "report";
+      report.dataset.images = "pending";
+      document.body.appendChild(report);
+
+      // Warm the HTTP cache first, so the iframe paints complete images even
+      // under --virtual-time-budget, which does not wait on real network time.
+      const WARM = [
+        "/images/hero.jpg",
+        "/images/horizon-band.jpg",
+        "/images/philosophy.jpg",
+        "/images/dest-amalfi.jpg",
+        "/images/dest-marrakech.jpg",
+        "/images/dest-dolomites.jpg",
+        "/images/detail-amalfi.jpg",
+        "/images/detail-marrakech.jpg",
+        "/images/detail-dolomites.jpg",
+        "/images/escape-slow-mornings.jpg",
+        "/images/escape-into-the-wild.jpg",
+        "/images/escape-coastal-living.jpg",
+        "/images/journal-marrakech.jpg",
+        "/images/journal-coast.jpg",
+        "/images/journal-slow.jpg",
+        "/fonts/CormorantGaramond-normal-300.woff2",
+        "/fonts/CormorantGaramond-normal-400.woff2",
+        "/fonts/CormorantGaramond-normal-500.woff2",
+        "/fonts/CormorantGaramond-italic-400.woff2",
+        "/fonts/Manrope-normal-300_700.woff2",
+      ];
+
+      frame.style.width = width + "px";
+      frame.style.height = (params.get("h") ? Number(params.get("h")) : window.innerHeight) + "px";
+      frame.style.transformOrigin = "top left";
+      frame.style.transform = "scale(" + scale + ")";
+
+      function place() {
+        try {
+          const doc = frame.contentDocument;
+          doc.documentElement.style.scrollBehavior = "auto";
+          doc.documentElement.scrollTop = y;
+          report.textContent =
+            "H=" + doc.documentElement.scrollHeight + " Y=" + doc.documentElement.scrollTop;
+        } catch (error) {
+          /* cross-origin guard, not expected */
+        }
+      }
+
+      // Walk the whole document once so scroll-triggered reveals fire, then
+      // settle on the requested offset before the capture.
+      function walk() {
+        try {
+          const doc = frame.contentDocument;
+          doc.documentElement.style.scrollBehavior = "auto";
+          const total = doc.documentElement.scrollHeight;
+          for (let step = 0; step < total; step += 700) {
+            doc.documentElement.scrollTop = step;
+          }
+        } catch (error) {
+          /* cross-origin guard, not expected */
+        }
+        place();
+      }
+
+      // Lazy images never start loading if the document is only scrolled
+      // synchronously, so force every plate to load eagerly for the capture.
+      function forceImages() {
+        try {
+          const doc = frame.contentDocument;
+          doc.querySelectorAll("img").forEach((img) => {
+            img.loading = "eager";
+          });
+          return Promise.all(
+            Array.from(doc.images).map((img) => img.decode().catch(() => null)),
+          ).then(() => {
+            report.dataset.images = "ready";
+          });
+        } catch (error) {
+          return Promise.resolve();
+        }
+      }
+
+      frame.addEventListener("load", () => {
+        forceImages().then(() => {
+          walk();
+          setTimeout(walk, 400);
+          setTimeout(place, 1400);
+          setTimeout(place, 2400);
+        });
+      });
+
+      Promise.all(WARM.map((url) => fetch(url).catch(() => null))).then(() => {
+        frame.src = "/" + (hash ? "#" + hash : "");
+      });
+    </script>
+  </body>
+</html>

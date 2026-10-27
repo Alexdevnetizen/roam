@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ROAM">
+  <rect width="64" height="64" rx="14" fill="#F6F3EC" />
+  <circle cx="32" cy="32" r="17.5" fill="none" stroke="#242B24" stroke-width="2" />
+  <path d="M14.5 32h35" stroke="#242B24" stroke-width="2" stroke-linecap="round" />
+  <circle cx="44.5" cy="22" r="3.2" fill="#C68D65" />
+</svg>
